@@ -1,0 +1,137 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { User, LoginResponse, AuthState } from '../types/auth.types';
+import { authService } from '../services/auth.service';
+import { apiService } from '../services/api.service';
+
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
+  hasModule: (module: string) => boolean;
+  isSuperAdmin: () => boolean;
+  isTenant: () => boolean;
+  isEmployee: () => boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    permissions: [],
+    modules: [],
+    token: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
+
+  // Verificar se há dados salvos ao carregar
+  useEffect(() => {
+    const initializeAuth = () => {
+      const token = authService.getStoredToken();
+      const userData = authService.getStoredUserData();
+      const permissions = apiService.getPermissions();
+      const modules = apiService.getModules();
+
+      if (token && userData) {
+        try {
+          const user: User = JSON.parse(userData);
+          setAuthState({
+            user,
+            permissions,
+            modules,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Erro ao parsear dados do usuário:', error);
+          authService.clearAuthData();
+          setAuthState((prev) => ({ ...prev, isLoading: false }));
+        }
+      } else {
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+      const response: LoginResponse = await authService.login({ email, password });
+      
+      setAuthState({
+        user: response.user,
+        permissions: response.permissions,
+        modules: response.modules,
+        token: response.token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    await authService.logout();
+    setAuthState({
+      user: null,
+      permissions: [],
+      modules: [],
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+  };
+
+  const hasPermission = (permission: string): boolean => {
+    return authState.permissions.includes(permission);
+  };
+
+  const hasModule = (module: string): boolean => {
+    return authState.modules.includes(module);
+  };
+
+  const isSuperAdmin = (): boolean => {
+    return authState.user?.is_super_admin ?? false;
+  };
+
+  const isTenant = (): boolean => {
+    return authState.user?.is_tenant ?? false;
+  };
+
+  const isEmployee = (): boolean => {
+    return !isSuperAdmin() && !isTenant();
+  };
+
+  const value: AuthContextType = {
+    ...authState,
+    login,
+    logout,
+    hasPermission,
+    hasModule,
+    isSuperAdmin,
+    isTenant,
+    isEmployee,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+

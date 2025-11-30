@@ -1,0 +1,199 @@
+.app-layout {
+  .app-sider {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    overflow: auto;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+
+    .app-sider-content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    // Scrollbar personalizada
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+
+      &:hover {
+        background: #555;
+      }
+    }
+  }
+
+  .app-header {
+    background: #fff;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    height: 64px;
+    line-height: 64px;
+
+    .app-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .menu-trigger {
+        font-size: 18px;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.06);
+        }
+      }
+
+      .app-title {
+        font-size: 18px;
+        margin: 0;
+      }
+    }
+
+    .app-header-right {
+      .user-info {
+        padding: 4px 12px;
+        border-radius: 6px;
+        transition: background-color 0.3s;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.06);
+        }
+      }
+    }
+  }
+
+  .app-content {
+    margin-left: 250px;
+    padding: 24px;
+    min-height: calc(100vh - 64px);
+    transition: margin-left 0.2s;
+  }
+
+  // Menu overlay para mobile
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 99;
+    animation: fadeIn 0.2s;
+  }
+
+  // Responsivo - Mobile
+  @media (max-width: 768px) {
+    .app-sider {
+      z-index: 1000;
+      transition: transform 0.3s ease-in-out;
+      
+      // Em mobile, quando colapsado, esconde completamente
+      &.mobile.collapsed {
+        transform: translateX(-100%);
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+      }
+      
+      // Em mobile, quando aberto, mostra normalmente
+      &.mobile:not(.collapsed) {
+        transform: translateX(0);
+        width: 250px !important;
+      }
+    }
+
+    .app-content {
+      margin-left: 0 !important;
+      padding: 16px;
+    }
+
+    .app-header {
+      .app-header-left {
+        .app-title {
+          display: none;
+        }
+      }
+
+      .app-header-right {
+        .user-info {
+          span:last-child {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+  
+  // Desktop - menu sempre aberto
+  @media (min-width: 769px) {
+    .app-sider {
+      // Em desktop, sempre aberto (não colapsa)
+      width: 250px !important;
+      min-width: 250px !important;
+      max-width: 250px !important;
+      
+      // Força o menu a não colapsar
+      &.desktop {
+        .ant-layout-sider-children {
+          width: 250px !important;
+        }
+        
+        // Garante que os textos do menu sejam sempre visíveis
+        .app-menu {
+          .ant-menu-item,
+          .ant-menu-submenu-title {
+            padding-left: 24px !important;
+            
+            .ant-menu-title-content {
+              opacity: 1 !important;
+              visibility: visible !important;
+            }
+          }
+        }
+      }
+    }
+    
+    .app-content {
+      margin-left: 250px !important;
+    }
+    
+    // Esconde o botão de toggle em desktop (menu sempre aberto)
+    .menu-trigger {
+      display: none;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+

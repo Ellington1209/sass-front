@@ -1,0 +1,87 @@
+.app-menu {
+  height: 100%;
+  border-right: 0;
+  
+  // Estilização dos itens do menu
+  .ant-menu-item {
+    margin: 4px 8px;
+    border-radius: 6px;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+    
+    &.ant-menu-item-selected {
+      background-color: #e6f7ff;
+      color: #1890ff;
+      font-weight: 500;
+      
+      &::after {
+        display: none;
+      }
+    }
+  }
+  
+  // Estilização dos submenus
+  .ant-menu-submenu {
+    margin: 4px 8px;
+    border-radius: 6px;
+    
+    .ant-menu-submenu-title {
+      border-radius: 6px;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+      }
+    }
+    
+    &.ant-menu-submenu-open {
+      .ant-menu-submenu-title {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+    }
+  }
+  
+  // Estilização dos itens dentro dos submenus
+  .ant-menu-submenu-inner {
+    .ant-menu-item {
+      margin: 2px 0;
+      padding-left: 24px !important;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+      
+      &.ant-menu-item-selected {
+        background-color: #e6f7ff;
+        color: #1890ff;
+      }
+    }
+  }
+  
+  // Ícones do menu
+  .ant-menu-item-icon,
+  .ant-menu-submenu-title .anticon {
+    font-size: 16px;
+    margin-right: 8px;
+  }
+  
+  // Scrollbar personalizada (se necessário)
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #555;
+    }
+  }
+}
+
