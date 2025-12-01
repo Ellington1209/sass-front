@@ -49,10 +49,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (token && userData) {
         try {
           const user: User = JSON.parse(userData);
+          // Garantir que permissions e modules sejam arrays
+          const safePermissions = Array.isArray(permissions) ? permissions : [];
+          const safeModules = Array.isArray(modules) ? modules : [];
+          
           setAuthState({
             user,
-            permissions,
-            modules,
+            permissions: safePermissions,
+            modules: safeModules,
             token,
             isAuthenticated: true,
             isLoading: false,
@@ -102,10 +106,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const hasPermission = (permission: string): boolean => {
+    // Garantir que permissions seja sempre um array
+    if (!Array.isArray(authState.permissions)) {
+      return false;
+    }
     return authState.permissions.includes(permission);
   };
 
   const hasModule = (module: string): boolean => {
+    // Garantir que modules seja sempre um array
+    if (!Array.isArray(authState.modules)) {
+      return false;
+    }
     return authState.modules.includes(module);
   };
 

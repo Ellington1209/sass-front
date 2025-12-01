@@ -1,7 +1,6 @@
 import React from 'react';
 import { Typography, Card, Space } from 'antd';
 import { useAuth } from '../../shared/contexts/AuthContext';
-import { AppLayout } from '../../shared/components/Layout';
 
 const { Title, Text } = Typography;
 
@@ -9,12 +8,11 @@ export const DashboardPage: React.FC = () => {
   const { user, modules, permissions, isSuperAdmin } = useAuth();
 
   return (
-    <AppLayout>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           <Title level={2}>Dashboard</Title>
           
           <Card>
-            <Space direction="vertical">
+            <Space orientation="vertical">
               <Text strong>Bem-vindo, {user?.name}!</Text>
               <Text type="secondary">Email: {user?.email}</Text>
               {isSuperAdmin() && (
@@ -49,8 +47,7 @@ export const DashboardPage: React.FC = () => {
               )}
             </Space>
           </Card>
-        </Space>
-    </AppLayout>
+    </Space>
   );
 };
 

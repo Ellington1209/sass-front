@@ -1,19 +1,26 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-
-import { DashboardPage, LoginPage, UnauthorizedPage } from '../pages';
-import { ProtectedRoute } from './ProtectedRoute';
+import { DashboardPage, LoginPage, Students, Tenant, UnauthorizedPage } from '../pages';
+import { ProtectedLayout } from './ProtectedLayout';
 import { PublicRoute } from './PublicRoute';
 
 export const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/login" element={ <PublicRoute> <LoginPage /> </PublicRoute> }/>
-      <Route path="/unauthorized" element={<ProtectedRoute><UnauthorizedPage /></ProtectedRoute>} />
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/unauthorized" element={<ProtectedLayout><UnauthorizedPage /></ProtectedLayout>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
+     
+      <Route path="/admin">         
+        <Route path="tenants" element={<ProtectedLayout><Tenant /></ProtectedLayout>} />
+      </Route>
 
-      <Route path="/dashboard"  element={ <ProtectedRoute>  <DashboardPage />  </ProtectedRoute> } />
+      <Route path="/students" element={<ProtectedLayout><Students /></ProtectedLayout>} />
+
+
+      {/* Dashboard */}
+      <Route path="/dashboard" element={<ProtectedLayout><DashboardPage /></ProtectedLayout>} />
     </Routes>
   );
 };

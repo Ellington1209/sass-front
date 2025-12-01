@@ -23,8 +23,22 @@ export const LoginPage: React.FC = () => {
       const from = (location.state as any)?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.';
+      // Tratar diferentes formatos de resposta de erro
+      let errorMessage = 'Erro ao fazer login. Verifique suas credenciais.';
+      
+      if (error.response) {
+        // Erro com resposta do servidor
+        errorMessage = error.response.data?.message 
+          || error.response.data?.error 
+          || error.response.data?.detail
+          || `Erro ${error.response.status}: ${error.response.statusText}`;
+      } else if (error.message) {
+        // Erro de rede ou outro tipo
+        errorMessage = error.message;
+      }
+      
       message.error(errorMessage);
+      console.error('Erro no login:', error);
     } finally {
       setLoading(false);
     }
@@ -45,7 +59,7 @@ export const LoginPage: React.FC = () => {
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
           <Title level={2} style={{ marginBottom: 0 }}>Login</Title>
           
           <Form

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined,
-  ShoppingOutlined,
-  UserOutlined,
-  DollarOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
+import type { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { MenuItem } from './types';
 
@@ -15,9 +14,48 @@ interface TenantMenuProps {
   onMenuClick?: () => void;
 }
 
+// Tipo para configuração de menu
+interface MenuConfig {
+  label: string;
+  icon: ReactNode;
+  rota?: string; // Rota do menu principal (se não for submenu)
+  module?: string; // Módulo necessário para aparecer (se não tiver, sempre aparece)
+  is_submenu: boolean;
+  submenu?: Array<{
+    label: string;
+    rota: string;
+    permission?: string; // Permissão necessária para aparecer
+  }>;
+}
+
+// Configuração dos menus
+const menuConfig: MenuConfig[] = [
+  {
+    label: 'Dashboard',
+    icon: <DashboardOutlined />,
+    rota: '/dashboard',
+    is_submenu: false,
+  },
+  {
+    label: 'Cadastros',
+    icon: <FileTextOutlined />,
+    module: 'students',
+    is_submenu: true,
+    submenu: [
+      {
+        label: 'Alunos',
+        rota: '/students',
+        permission: 'students.view',
+      },
+    ],
+  },
+];
+
 /**
  * Menu para Tenants
  * Exibe menus baseados em módulos e permissões do usuário
+ * Cada módulo só aparece se o usuário tiver acesso ao módulo
+ * Cada item do menu só aparece se o usuário tiver a permissão necessária
  */
 export const TenantMenu: React.FC<TenantMenuProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
@@ -25,118 +63,56 @@ export const TenantMenu: React.FC<TenantMenuProps> = ({ onMenuClick }) => {
   const { hasModule, hasPermission } = useAuth();
   const [stateOpenKeys, setStateOpenKeys] = useState<string[]>([]);
 
-  const menuItems: MenuItem[] = [
-    // Menu sempre visível
-    {
-      key: '/dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-    },
-  ];
+  // Processa a configuração e gera os menuItems
+  const menuItems: MenuItem[] = useMemo(() => {
+    const items: MenuItem[] = [];
 
-  // Menu baseado em módulo - Estoque
-  if (hasModule('Estoque')) {
-    const estoqueChildren: MenuItem[] = [
-      {
-        key: '/estoque',
-        label: 'Listar Produtos',
-      },
-    ];
+    menuConfig.forEach((config) => {
+      // Verifica se tem o módulo necessário
+      if (config.module && !hasModule(config.module)) {
+        return; // Pula este menu se não tiver o módulo
+      }
 
-    if (hasPermission('estoque.create')) {
-      estoqueChildren.push({
-        key: '/estoque/novo',
-        label: 'Novo Produto',
-      });
-    }
+      // Se não for submenu, adiciona diretamente
+      if (!config.is_submenu) {
+        items.push({
+          key: config.rota || '',
+          icon: config.icon,
+          label: config.label,
+        });
+        return;
+      }
 
-    if (hasPermission('estoque.edit')) {
-      estoqueChildren.push({
-        key: '/estoque/editar',
-        label: 'Editar Produto',
-      });
-    }
+      // Se for submenu, processa os subitens
+      if (config.is_submenu && config.submenu) {
+        const submenuItems: MenuItem[] = [];
 
-    if (hasPermission('estoque.delete')) {
-      estoqueChildren.push({
-        key: '/estoque/excluir',
-        label: 'Excluir Produto',
-      });
-    }
+        config.submenu.forEach((subItem) => {
+          // Verifica permissão se necessário
+          if (subItem.permission && !hasPermission(subItem.permission)) {
+            return; // Pula este item se não tiver permissão
+          }
 
-    menuItems.push({
-      key: 'estoque',
-      icon: <ShoppingOutlined />,
-      label: 'Estoque',
-      children: estoqueChildren,
+          submenuItems.push({
+            key: subItem.rota,
+            label: subItem.label,
+          });
+        });
+
+        // Adiciona o menu principal apenas se houver subitens
+        if (submenuItems.length > 0) {
+          items.push({
+            key: config.label.toLowerCase().replace(/\s+/g, '-'),
+            icon: config.icon,
+            label: config.label,
+            children: submenuItems,
+          });
+        }
+      }
     });
-  }
 
-  // Menu baseado em módulo - Cliente
-  if (hasModule('Cliente')) {
-    const clienteChildren: MenuItem[] = [
-      {
-        key: '/cliente',
-        label: 'Listar Clientes',
-      },
-    ];
-
-    if (hasPermission('cliente.create')) {
-      clienteChildren.push({
-        key: '/cliente/novo',
-        label: 'Novo Cliente',
-      });
-    }
-
-    if (hasPermission('cliente.edit')) {
-      clienteChildren.push({
-        key: '/cliente/editar',
-        label: 'Editar Cliente',
-      });
-    }
-
-    menuItems.push({
-      key: 'cliente',
-      icon: <UserOutlined />,
-      label: 'Clientes',
-      children: clienteChildren,
-    });
-  }
-
-  // Menu baseado em módulo - Financeiro
-  if (hasModule('Financeiro')) {
-    const financeiroChildren: MenuItem[] = [];
-
-    if (hasPermission('financeiro.view')) {
-      financeiroChildren.push({
-        key: '/financeiro',
-        label: 'Dashboard Financeiro',
-      });
-    }
-
-    if (hasPermission('financeiro.transacoes')) {
-      financeiroChildren.push({
-        key: '/financeiro/transacoes',
-        label: 'Transações',
-      });
-    }
-
-    if (hasPermission('financeiro.relatorios')) {
-      financeiroChildren.push({
-        key: '/financeiro/relatorios',
-        label: 'Relatórios',
-      });
-    }
-
-    if (financeiroChildren.length > 0) {
-      menuItems.push({
-        key: 'financeiro',
-        icon: <DollarOutlined />,
-        label: 'Financeiro',
-        children: financeiroChildren,
-      });
-    }
-  }
+    return items;
+  }, [hasModule, hasPermission]);
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);

@@ -33,11 +33,16 @@ class ApiService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Token inválido ou expirado
-          this.clearToken();
-          this.clearUserData();
-          this.clearAuthData();
-          window.location.href = '/login';
+          // Não redirecionar se for uma tentativa de login (deixa o erro ser tratado no componente)
+          const isLoginRequest = error.config?.url?.includes('/auth/login');
+          
+          if (!isLoginRequest) {
+            // Token inválido ou expirado - apenas para requisições autenticadas
+            this.clearToken();
+            this.clearUserData();
+            this.clearAuthData();
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -82,12 +87,56 @@ class ApiService {
 
   getPermissions(): string[] {
     const data = localStorage.getItem('auth_permissions');
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    
+    try {
+      const parsed = JSON.parse(data);
+      
+      // Se já for array, retornar
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      
+      // Se for objeto, converter para array plano
+      if (typeof parsed === 'object' && parsed !== null) {
+        const flatPermissions: string[] = [];
+        Object.values(parsed).forEach((modulePerms) => {
+          if (Array.isArray(modulePerms)) {
+            flatPermissions.push(...modulePerms);
+          }
+        });
+        return flatPermissions;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Erro ao parsear permissões:', error);
+      return [];
+    }
   }
 
   getModules(): string[] {
     const data = localStorage.getItem('auth_modules');
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    
+    try {
+      const parsed = JSON.parse(data);
+      
+      // Se já for array, retornar
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      
+      // Se for objeto, retornar as chaves (nomes dos módulos)
+      if (typeof parsed === 'object' && parsed !== null) {
+        return Object.keys(parsed);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Erro ao parsear módulos:', error);
+      return [];
+    }
   }
 
   clearAuthData(): void {
