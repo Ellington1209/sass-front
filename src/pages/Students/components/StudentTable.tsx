@@ -4,6 +4,7 @@ import { EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined } from '@ant
 import { AppTable, type AppTableColumn } from '../../../shared/components/Table';
 import { studentService, type Student as StudentType, type StudentListParams } from '../../../shared/services/student.service';
 import { statusStudentService, type StatusStudent } from '../../../shared/services/statusStudent.service';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 
 interface StudentTableProps {
   onEdit: (student: StudentType) => void;
@@ -11,6 +12,7 @@ interface StudentTableProps {
 }
 
 export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh }) => {
+  const { hasPermission } = useAuth();
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<StudentType[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -25,6 +27,9 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
   });
   const [statusList, setStatusList] = useState<StatusStudent[]>([]);
   const [searchValue, setSearchValue] = useState('');
+  
+  const canEdit = hasPermission('students.edit');
+  const canDelete = hasPermission('students.delete');
 
   const fetchStudents = async (params?: StudentListParams) => {
     try {
@@ -132,17 +137,31 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
       key: 'photo',
       width: 80,
       render: (photoUrl: string) => {
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-        const fullUrl = photoUrl?.startsWith('http') 
-          ? photoUrl 
-          : photoUrl 
-            ? `${apiBaseUrl.replace('/api', '')}${photoUrl}`
-            : null;
+        // Se a URL já for completa (começa com http/https), usar diretamente
+        // Caso contrário, construir a URL completa
+        let fullUrl: string | undefined = undefined;
+        
+        if (photoUrl) {
+          if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+            fullUrl = photoUrl;
+          } else {
+            // Se for caminho relativo, construir URL completa
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+            fullUrl = `${apiBaseUrl.replace('/api', '')}${photoUrl}`;
+          }
+        }
+        
         return (
           <Avatar
-            src={fullUrl || undefined}
+            src={fullUrl}
             icon={<UserOutlined />}
             size="large"
+            style={{ cursor: fullUrl ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (fullUrl) {
+                window.open(fullUrl, '_blank');
+              }
+            }}
           />
         );
       },
@@ -198,30 +217,43 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
       title: 'Ações',
       key: 'actions',
       fixed: 'right',
-      width: 150,
-      render: (_: any, record: StudentType) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => onEdit(record)}
-          >
-            Editar
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              if (record.id && window.confirm('Tem certeza que deseja excluir este aluno?')) {
-                handleDelete(record.id);
-              }
-            }}
-          >
-            Excluir
-          </Button>
-        </Space>
-      ),
+      width: canEdit || canDelete ? 150 : 0,
+      render: (_: any, record: StudentType) => {
+        const actions = [];
+        
+        if (canEdit) {
+          actions.push(
+            <Button
+              key="edit"
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => onEdit(record)}
+            >
+              Editar
+            </Button>
+          );
+        }
+        
+        if (canDelete) {
+          actions.push(
+            <Button
+              key="delete"
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                if (record.id && window.confirm('Tem certeza que deseja excluir este aluno?')) {
+                  handleDelete(record.id);
+                }
+              }}
+            >
+              Excluir
+            </Button>
+          );
+        }
+        
+        return actions.length > 0 ? <Space>{actions}</Space> : '-';
+      },
     },
   ];
 
@@ -265,7 +297,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
           />
         </Space>
 
-        {selectedRowKeys.length > 0 && (
+        {selectedRowKeys.length > 0 && canDelete && (
           <Button danger onClick={handleDeleteMany}>
             Excluir Selecionados ({selectedRowKeys.length})
           </Button>
@@ -276,7 +308,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
         columns={columns}
         dataSource={students}
         loading={loading}
-        selectionType="checkbox"
+        selectionType={canDelete ? "checkbox" : undefined}
         onSelectionChange={(keys) => setSelectedRowKeys(keys)}
         pagination={{
           current: pagination.current,
