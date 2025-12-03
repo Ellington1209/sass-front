@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DashboardOutlined,
   FileTextOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,6 +47,19 @@ const menuConfig: MenuConfig[] = [
         label: 'Alunos',
         rota: '/students',
         permission: 'students.view',
+      },
+    ],
+  },
+  {
+    label: 'Configurações',
+    icon: <SettingOutlined />,
+    module: 'settings',
+    is_submenu: true,
+    submenu: [
+      {
+        label: 'Permissões e Usuarios',
+        rota: '/settings/permissions-and-users',
+        permission: 'settings.view',
       },
     ],
   },

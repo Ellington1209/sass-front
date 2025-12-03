@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import { DashboardPage, LoginPage, Students, Tenant, UnauthorizedPage } from '../pages';
+import { DashboardPage, LoginPage, PermissoesUsuarios, Students, Tenant, UnauthorizedPage } from '../pages';
 import { ProtectedLayout } from './ProtectedLayout';
 import { PublicRoute } from './PublicRoute';
 
@@ -21,6 +21,8 @@ export const AppRoutes = () => {
 
       {/* Dashboard */}
       <Route path="/dashboard" element={<ProtectedLayout><DashboardPage /></ProtectedLayout>} />
+
+      <Route path="/settings/permissions-and-users" element={<ProtectedLayout><PermissoesUsuarios /></ProtectedLayout>} />
     </Routes>
   );
 };

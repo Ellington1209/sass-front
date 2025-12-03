@@ -4,3 +4,4 @@ export { UnauthorizedPage } from './UnauthorizedPage';
 export { LoginPage } from './login';
 export { Tenant } from './Tenant';
 export { Students } from './Students';
+export { PermissoesUsuarios } from './Settings/PermissoesUsuarios';

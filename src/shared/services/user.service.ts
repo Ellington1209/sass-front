@@ -1,31 +1,24 @@
-import { api } from './api.service';
+import { CrudService } from './crud.service';
 
 export interface User {
-  id: number;
+  id?: number;
   name: string;
   email: string;
+  password?: string;
+  tenant_id?: number | null;
   is_super_admin?: boolean;
   is_tenant?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**
  * Service para gerenciar usuários
+ * Usa o CrudService genérico internamente
  */
-class UserService {
-  /**
-   * Listar todos os usuários (para seleção de admin)
-   */
-  async list(): Promise<User[]> {
-    const response = await api.get<User[]>('/users');
-    return response.data;
-  }
-
-  /**
-   * Buscar usuário por ID
-   */
-  async getById(id: number): Promise<User> {
-    const response = await api.get<User>(`/users/${id}`);
-    return response.data;
+class UserService extends CrudService<User> {
+  constructor() {
+    super('/users');
   }
 }
 
