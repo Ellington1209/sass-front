@@ -20,6 +20,10 @@ class ModuleService {
     const response = await api.get<Module[]>('/admin/modules');
     return response.data;
   }
+  async listServices(): Promise<Module[]> {
+    const response = await api.get<Module[]>('/admin/modules/services');
+    return response.data;
+  }
 }
 
 export const moduleService = new ModuleService();

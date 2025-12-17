@@ -3,6 +3,7 @@ import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
+  CalendarOutlined,
   DashboardOutlined,
   FileTextOutlined,
   SettingOutlined,
@@ -49,6 +50,13 @@ const menuConfig: MenuConfig[] = [
         permission: 'students.view',
       },
     ],
+  },
+  {
+    label: 'Agenda',
+    icon: <CalendarOutlined />,
+    rota: '/agenda',
+    module: 'agenda',
+    is_submenu: false,
   },
   {
     label: 'Configurações',

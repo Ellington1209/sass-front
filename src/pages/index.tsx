@@ -5,3 +5,5 @@ export { LoginPage } from './login';
 export { Tenant } from './Tenant';
 export { Students } from './Students';
 export { PermissoesUsuarios } from './Settings/PermissoesUsuarios';
+export { Agenda } from './Agenda';
+export { Profissionais } from './Agenda/Profissionais';

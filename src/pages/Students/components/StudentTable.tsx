@@ -170,6 +170,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
       title: 'Nome',
       key: 'name',
       render: (_: any, record: StudentType) => record.user?.name || '-',
+      sorter: true,
     },
     {
       title: 'Email',
@@ -178,25 +179,27 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
     },
     {
       title: 'CPF',
-      dataIndex: 'cpf',
       key: 'cpf',
+      render: (_: any, record: StudentType) => record.person?.cpf || record.cpf || '-',
       sorter: true,
     },
     {
       title: 'RG',
-      dataIndex: 'rg',
       key: 'rg',
+      render: (_: any, record: StudentType) => record.person?.rg || record.rg || '-',
     },
     {
       title: 'Data de Nascimento',
-      dataIndex: 'birth_date',
       key: 'birth_date',
-      render: (date: string) => (date ? new Date(date).toLocaleDateString('pt-BR') : '-'),
+      render: (_: any, record: StudentType) => {
+        const date = record.person?.birth_date || record.birth_date;
+        return date ? new Date(date).toLocaleDateString('pt-BR') : '-';
+      },
     },
     {
       title: 'Telefone',
-      dataIndex: 'phone',
       key: 'phone',
+      render: (_: any, record: StudentType) => record.person?.phone || record.phone || '-',
     },
     {
       title: 'Categoria',

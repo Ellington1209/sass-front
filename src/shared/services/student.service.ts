@@ -10,10 +10,20 @@ export interface StudentUser {
 export interface StudentAddress {
   street?: string;
   number?: string;
+  complement?: string;
   neighborhood?: string;
   city?: string;
   state?: string;
   zip?: string;
+}
+
+export interface StudentPerson {
+  id: number;
+  cpf: string;
+  rg?: string | null;
+  birth_date: string;
+  phone?: string;
+  address?: StudentAddress;
 }
 
 export interface StudentStatus {
@@ -26,13 +36,15 @@ export interface StudentStatus {
 export interface Student {
   id?: number;
   tenant_id?: number;
+  person_id?: number;
   user_id?: number;
-  user?: StudentUser;
-  cpf: string;
-  rg?: string;
-  birth_date: string;
-  phone?: string;
-  address?: StudentAddress;
+  user?: StudentUser; // Mantido para compatibilidade
+  person?: StudentPerson; // Nova estrutura da API
+  cpf?: string; // Mantido para compatibilidade, mas agora vem em person.cpf
+  rg?: string | null; // Mantido para compatibilidade, mas agora vem em person.rg
+  birth_date?: string; // Mantido para compatibilidade, mas agora vem em person.birth_date
+  phone?: string; // Mantido para compatibilidade, mas agora vem em person.phone
+  address?: StudentAddress; // Mantido para compatibilidade, mas agora vem em person.address
   address_street?: string; // Para formulário
   address_number?: string;
   address_neighborhood?: string;
@@ -40,9 +52,10 @@ export interface Student {
   address_state?: string;
   address_zip?: string;
   category?: string;
+  registration_number?: string | null;
   status?: StudentStatus;
   status_students_id?: number;
-  photo_url?: string;
+  photo_url?: string | null;
   documents?: any[];
   notes?: any[];
   created_at?: string;
@@ -55,6 +68,7 @@ export interface StudentListParams {
   status?: number | string;
   category?: string;
   search?: string;
+  with?: string; // Para incluir relacionamentos (ex: 'user,person')
 }
 
 export interface StudentListResponse {
@@ -82,7 +96,12 @@ class StudentService extends CrudService<Student> {
    * Listar estudantes com paginação e filtros
    */
   async listPaginated(params?: StudentListParams): Promise<StudentListResponse> {
-    const response = await api.get<StudentListResponse>('/students', { params });
+    // Incluir relacionamentos por padrão
+    const requestParams = {
+      ...params,
+      with: params?.with || 'user,person,status', // Incluir user, person e status por padrão
+    };
+    const response = await api.get<StudentListResponse>('/students', { params: requestParams });
     return response.data;
   }
 

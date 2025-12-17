@@ -69,11 +69,17 @@ export const AddTenant: React.FC<AddTenantProps> = ({ open, onClose, onSuccess, 
         return module?.id;
       }).filter((id): id is number => typeof id === 'number');
 
+      // Pegar o admin_user_id: primeiro tenta do campo direto, senão pega o primeiro usuário do array users
+      let adminUserId = tenant.admin_user_id;
+      if (!adminUserId && tenant.users && tenant.users.length > 0) {
+        adminUserId = tenant.users[0].id;
+      }
+
       form.setFieldsValue({
         name: tenant.name,
         active: tenant.active ?? true,
         active_modules: moduleIds,
-        admin_user_id: tenant.admin_user_id,
+        admin_user_id: adminUserId,
       });
     } else {
       form.resetFields();

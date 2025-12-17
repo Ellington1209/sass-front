@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import { DashboardPage, LoginPage, PermissoesUsuarios, Students, Tenant, UnauthorizedPage } from '../pages';
+import { Agenda, DashboardPage, LoginPage, PermissoesUsuarios, Students, Tenant, UnauthorizedPage } from '../pages';
 import { ProtectedLayout } from './ProtectedLayout';
 import { PublicRoute } from './PublicRoute';
 
@@ -17,6 +17,7 @@ export const AppRoutes = () => {
       </Route>
 
       <Route path="/students" element={<ProtectedLayout><Students /></ProtectedLayout>} />
+      <Route path="/agenda" element={<ProtectedLayout><Agenda /></ProtectedLayout>} />
 
 
       {/* Dashboard */}

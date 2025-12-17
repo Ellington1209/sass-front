@@ -1,40 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Upload, message, Row, Col } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Upload, message, Row, Col, Tag, Space, Typography } from 'antd';
+import { UploadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
-import { studentService, type Student as StudentType } from '../../../shared/services/student.service';
-import { statusStudentService, type StatusStudent } from '../../../shared/services/statusStudent.service';
-import { userService } from '../../../shared/services/user.service';
+import { providerService, type Provider as ProviderType } from '../../../../shared/services/provider.service';
+import { adminServiceService, type AdminService } from '../../../../shared/services/adminService.service';
+import { userService } from '../../../../shared/services/user.service';
 import dayjs from 'dayjs';
 
-interface AddStudentProps {
+const { Text } = Typography;
+
+interface AddProviderProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  student?: StudentType | null;
+  provider?: ProviderType | null;
 }
 
-export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess, student }) => {
+export const AddProvider: React.FC<AddProviderProps> = ({ open, onClose, onSuccess, provider }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [statusList, setStatusList] = useState<StatusStudent[]>([]);
-  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [servicesList, setServicesList] = useState<AdminService[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  const isEdit = !!student;
+  const isEdit = !!provider;
 
   useEffect(() => {
     if (!open) return;
 
     const fetchData = async () => {
       try {
-        setLoadingStatus(true);
-        const statuses = await statusStudentService.list();
-        setStatusList(statuses.filter((s) => s.active));
+        setLoadingServices(true);
+        const services = await adminServiceService.list();
+        setServicesList(services);
       } catch (err: any) {
-        message.error('Erro ao carregar status');
+        message.error('Erro ao carregar serviços');
       } finally {
-        setLoadingStatus(false);
+        setLoadingServices(false);
       }
     };
 
@@ -44,23 +46,20 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
   useEffect(() => {
     if (!open) return;
 
-    const loadStudentData = async () => {
-      if (student && student.id) {
+    const loadProviderData = async () => {
+      if (provider && provider.id) {
         try {
-          // Buscar student completo com relacionamentos se não tiver user
-          let studentData = student;
-          if (!student.user && student.user_id) {
+          let providerData = provider;
+          if (!provider.user && provider.user_id) {
             try {
-              // Tentar buscar o student completo com relacionamentos
-              const fullStudent = await studentService.getById(student.id);
-              if (fullStudent.user) {
-                studentData = fullStudent;
-              } else if (student.user_id) {
-                // Se ainda não tiver user, buscar separadamente
+              const fullProvider = await providerService.getById(provider.id);
+              if (fullProvider.user) {
+                providerData = fullProvider;
+              } else if (provider.user_id) {
                 try {
-                  const user = await userService.getById(student.user_id);
-                  studentData = {
-                    ...studentData,
+                  const user = await userService.getById(provider.user_id);
+                  providerData = {
+                    ...providerData,
                     user: {
                       id: user.id!,
                       name: user.name,
@@ -72,49 +71,46 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
                 }
               }
             } catch (err) {
-              console.error('Erro ao buscar student completo:', err);
+              console.error('Erro ao buscar provider completo:', err);
             }
           }
 
-          // Usar dados do objeto person (nova estrutura) ou campos diretos (compatibilidade)
-          const person = studentData.person;
-          const cpf = person?.cpf || studentData.cpf || '';
-          const rg = person?.rg || studentData.rg || null;
-          const birthDate = person?.birth_date || studentData.birth_date;
-          const phone = person?.phone || studentData.phone || '';
+          const person = providerData.person;
+          const cpf = person?.cpf || providerData.cpf || '';
+          const rg = person?.rg || providerData.rg || null;
+          const birthDate = person?.birth_date || providerData.birth_date;
+          const phone = person?.phone || providerData.phone || '';
           
-          // Usar dados do objeto address dentro de person ou campos diretos
-          const address = person?.address || studentData.address || {};
+          const address = person?.address || providerData.address || {};
           
           form.setFieldsValue({
-            name: studentData.user?.name || '',
-            email: studentData.user?.email || '',
+            name: providerData.user?.name || '',
+            email: providerData.user?.email || '',
             cpf,
             rg,
             birth_date: birthDate ? dayjs(birthDate) : null,
             phone,
-            address_street: address.street || studentData.address_street,
-            address_number: address.number || studentData.address_number,
-            address_neighborhood: address.neighborhood || studentData.address_neighborhood,
-            address_city: address.city || studentData.address_city,
-            address_state: address.state || studentData.address_state,
-            address_zip: address.zip || studentData.address_zip,
-            category: studentData.category,
-            status_students_id: studentData.status?.id || studentData.status_students_id,
+            address_street: address.street || providerData.address_street,
+            address_number: address.number || providerData.address_number,
+            address_neighborhood: address.neighborhood || providerData.address_neighborhood,
+            address_city: address.city || providerData.address_city,
+            address_state: address.state || providerData.address_state,
+            address_zip: address.zip || providerData.address_zip,
+            service_ids: providerData.service_ids || [],
           });
 
-          if (studentData.photo_url) {
+          if (providerData.photo_url) {
             setFileList([
               {
                 uid: '-1',
                 name: 'Foto atual',
                 status: 'done',
-                url: studentData.photo_url,
+                url: providerData.photo_url,
               },
             ]);
           }
         } catch (err) {
-          console.error('Erro ao carregar dados do aluno:', err);
+          console.error('Erro ao carregar dados do profissional:', err);
         }
       } else {
         form.resetFields();
@@ -122,8 +118,8 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
       }
     };
 
-    loadStudentData();
-  }, [open, student, form]);
+    loadProviderData();
+  }, [open, provider, form]);
 
   const handleSubmit = async (values: any) => {
     try {
@@ -131,7 +127,6 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
 
       const formData = new FormData();
 
-      // Adicionar campos do formulário
       formData.append('name', values.name);
       formData.append('email', values.email);
       formData.append('cpf', values.cpf);
@@ -144,20 +139,24 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
       if (values.address_city) formData.append('address_city', values.address_city);
       if (values.address_state) formData.append('address_state', values.address_state);
       if (values.address_zip) formData.append('address_zip', values.address_zip);
-      if (values.category) formData.append('category', values.category);
-      if (values.status_students_id) formData.append('status_students_id', values.status_students_id);
+      
+      // Adicionar service_ids como array
+      if (values.service_ids && Array.isArray(values.service_ids)) {
+        values.service_ids.forEach((id: number, index: number) => {
+          formData.append(`service_ids[${index}]`, id.toString());
+        });
+      }
 
-      // Adicionar foto se houver
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append('photo', fileList[0].originFileObj);
       }
 
-      if (isEdit && student?.id) {
-        await studentService.updateWithPhoto(student.id, formData);
-        message.success('Aluno atualizado com sucesso!');
+      if (isEdit && provider?.id) {
+        await providerService.updateWithPhoto(provider.id, formData);
+        message.success('Profissional atualizado com sucesso!');
       } else {
-        await studentService.createWithPhoto(formData);
-        message.success('Aluno criado com sucesso!');
+        await providerService.createWithPhoto(formData);
+        message.success('Profissional criado com sucesso!');
       }
 
       form.resetFields();
@@ -165,7 +164,7 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
       onSuccess();
       onClose();
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Erro ao salvar aluno');
+      message.error(err.response?.data?.message || 'Erro ao salvar profissional');
     } finally {
       setLoading(false);
     }
@@ -176,10 +175,9 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
   };
 
   const beforeUpload = () => {
-    return false; // Impede upload automático
+    return false;
   };
 
-  // Formatação de CPF
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {
@@ -191,7 +189,6 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
     return value;
   };
 
-  // Formatação de telefone
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {
@@ -203,7 +200,6 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
     return value;
   };
 
-  // Formatação de CEP
   const formatCEP = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 8) {
@@ -214,7 +210,7 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
 
   return (
     <Modal
-      title={isEdit ? 'Editar Aluno' : 'Novo Aluno'}
+      title={isEdit ? 'Editar Profissional' : 'Novo Profissional'}
       open={open}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -230,7 +226,7 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
               label="Nome Completo"
               rules={[{ required: true, message: 'Insira o nome completo' }]}
             >
-              <Input placeholder="Nome completo do aluno" />
+              <Input placeholder="Nome completo do profissional" />
             </Form.Item>
           </Col>
 
@@ -274,7 +270,7 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
 
           <Col xs={24} sm={12}>
             <Form.Item name="rg" label="RG">
-              <Input placeholder="RG do aluno" />
+              <Input placeholder="RG do profissional" />
             </Form.Item>
           </Col>
         </Row>
@@ -335,7 +331,7 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
         <Row gutter={16}>
           <Col xs={24} sm={8}>
             <Form.Item name="address_state" label="Estado">
-              <Input placeholder="SP" maxLength={2} />
+              <Input placeholder="GO" maxLength={2} />
             </Form.Item>
           </Col>
 
@@ -351,40 +347,50 @@ export const AddStudent: React.FC<AddStudentProps> = ({ open, onClose, onSuccess
               />
             </Form.Item>
           </Col>
-
-          <Col xs={24} sm={8}>
-            <Form.Item name="category" label="Categoria">
-              <Select placeholder="Selecione a categoria" allowClear>
-                <Select.Option value="A">A</Select.Option>
-                <Select.Option value="B">B</Select.Option>
-                <Select.Option value="C">C</Select.Option>
-                <Select.Option value="D">D</Select.Option>
-                <Select.Option value="AB">AB</Select.Option>
-                <Select.Option value="AC">AC</Select.Option>
-                <Select.Option value="AD">AD</Select.Option>
-                <Select.Option value="AE">AE</Select.Option>
-              </Select>
-            </Form.Item>
-          </Col>
         </Row>
 
         <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item name="status_students_id" label="Status">
+          <Col xs={24}>
+            <Form.Item
+              name="service_ids"
+              label="Serviços"
+            >
               <Select
-                placeholder="Selecione o status"
-                loading={loadingStatus}
+                mode="multiple"
+                placeholder="Selecione os serviços"
+                loading={loadingServices}
+                showSearch
                 allowClear
-                options={statusList.map((status) => ({
-                  value: status.id,
-                  label: status.name,
+                optionFilterProp="value"
+                filterOption={(input, option) => {
+                  const service = servicesList.find((s) => s.id === option?.value);
+                  if (!service) return false;
+                  const text = `${service.name} ${service.slug || ''}`.toLowerCase();
+                  return text.includes(input.toLowerCase());
+                }}
+                tagRender={({ value, onClose, closable }) => {
+                  const service = servicesList.find((s) => s.id === value);
+                  return (
+                    <Tag color="blue" closable={closable} onClose={onClose} style={{ marginRight: 3 }}>
+                      {service?.name || value}
+                    </Tag>
+                  );
+                }}
+                options={servicesList.map((service) => ({
+                  value: service.id,
+                  label: (
+                    <Space>
+                      <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                      <Text strong>{service.name}</Text>
+                    </Space>
+                  )
                 }))}
               />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item label="Foto do Aluno">
+        <Form.Item label="Foto do Profissional">
           <Upload
             listType="picture-card"
             fileList={fileList}
