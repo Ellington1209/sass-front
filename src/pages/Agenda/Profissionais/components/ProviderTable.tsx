@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Tag, message, Avatar, Input } from 'antd';
-import { EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Space, Tag, message, Input, Modal, Descriptions, Avatar, Typography } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
 import { AppTable, type AppTableColumn } from '../../../../shared/components/Table';
 import { providerService, type Provider as ProviderType } from '../../../../shared/services/provider.service';
 import { useAuth } from '../../../../shared/contexts/AuthContext';
+import dayjs from 'dayjs';
+
+const { Text } = Typography;
 
 interface ProviderTableProps {
   onEdit: (provider: ProviderType) => void;
@@ -16,6 +19,8 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
   const [providers, setProviders] = useState<ProviderType[]>([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [searchValue, setSearchValue] = useState('');
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewingProvider, setViewingProvider] = useState<ProviderType | null>(null);
   
   const canEdit = hasPermission('agenda.providers.edit');
   const canDelete = hasPermission('agenda.providers.delete');
@@ -70,49 +75,20 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
-    const filtered = providers.filter((provider) => {
-      const searchLower = value.toLowerCase();
-      const name = provider.user?.name?.toLowerCase() || '';
-      const email = provider.user?.email?.toLowerCase() || '';
-      const cpf = provider.person?.cpf?.toLowerCase() || provider.cpf?.toLowerCase() || '';
-      return name.includes(searchLower) || email.includes(searchLower) || cpf.includes(searchLower);
-    });
     // Note: Esta é uma busca local. Se precisar de busca no backend, ajustar fetchProviders
   };
 
+  const handleView = (provider: ProviderType) => {
+    setViewingProvider(provider);
+    setViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setViewingProvider(null);
+  };
+
   const columns: AppTableColumn<ProviderType>[] = [
-    {
-      title: 'Foto',
-      dataIndex: 'photo_url',
-      key: 'photo',
-      width: 80,
-      render: (photoUrl: string) => {
-        let fullUrl: string | undefined = undefined;
-        
-        if (photoUrl) {
-          if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
-            fullUrl = photoUrl;
-          } else {
-            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-            fullUrl = `${apiBaseUrl.replace('/api', '')}${photoUrl}`;
-          }
-        }
-        
-        return (
-          <Avatar
-            src={fullUrl}
-            icon={<UserOutlined />}
-            size="large"
-            style={{ cursor: fullUrl ? 'pointer' : 'default' }}
-            onClick={() => {
-              if (fullUrl) {
-                window.open(fullUrl, '_blank');
-              }
-            }}
-          />
-        );
-      },
-    },
     {
       title: 'Nome',
       key: 'name',
@@ -125,50 +101,37 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
       render: (_: any, record: ProviderType) => record.user?.email || '-',
     },
     {
-      title: 'CPF',
-      key: 'cpf',
-      render: (_: any, record: ProviderType) => record.person?.cpf || record.cpf || '-',
-      sorter: true,
-    },
-    {
       title: 'Telefone',
       key: 'phone',
       render: (_: any, record: ProviderType) => record.person?.phone || record.phone || '-',
     },
     {
-      title: 'Serviços',
-      key: 'services',
-      render: (_: any, record: ProviderType) => {
-        if (record.service_ids && record.service_ids.length > 0) {
-          return (
-            <Space wrap>
-              {record.service_ids.map((id) => (
-                <Tag key={id} color="blue">{id}</Tag>
-              ))}
-            </Space>
-          );
-        }
-        return '-';
-      },
-    },
-    {
       title: 'Ações',
       key: 'actions',
       fixed: 'right',
-      width: canEdit || canDelete ? 150 : 0,
+      width: 120,
       render: (_: any, record: ProviderType) => {
         const actions = [];
+        
+        actions.push(
+          <Button
+            key="view"
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+            title="Visualizar"
+          />
+        );
         
         if (canEdit) {
           actions.push(
             <Button
               key="edit"
-              type="link"
+              type="text"
               icon={<EditOutlined />}
               onClick={() => onEdit(record)}
-            >
-              Editar
-            </Button>
+              title="Editar"
+            />
           );
         }
         
@@ -176,7 +139,7 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
           actions.push(
             <Button
               key="delete"
-              type="link"
+              type="text"
               danger
               icon={<DeleteOutlined />}
               onClick={() => {
@@ -184,13 +147,12 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
                   handleDelete(record.id);
                 }
               }}
-            >
-              Excluir
-            </Button>
+              title="Excluir"
+            />
           );
         }
         
-        return actions.length > 0 ? <Space>{actions}</Space> : '-';
+        return <Space>{actions}</Space>;
       },
     },
   ];
@@ -227,8 +189,94 @@ export const ProviderTable: React.FC<ProviderTableProps> = ({ onEdit, onRefresh 
           showSizeChanger: true,
           showTotal: (total) => `Total: ${total} profissional(is)`,
         }}
-        scroll={{ x: 1000 }}
       />
+
+      <Modal
+        title="Detalhes do Profissional"
+        open={viewModalOpen}
+        onCancel={handleCloseViewModal}
+        footer={[
+          <Button key="close" onClick={handleCloseViewModal}>
+            Fechar
+          </Button>,
+        ]}
+        width={700}
+      >
+        {viewingProvider && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              {viewingProvider.photo_url ? (
+                <Avatar
+                  src={viewingProvider.photo_url}
+                  icon={<UserOutlined />}
+                  size={120}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => window.open(viewingProvider.photo_url!, '_blank')}
+                />
+              ) : (
+                <Avatar icon={<UserOutlined />} size={120} />
+              )}
+            </div>
+
+            <Descriptions column={1} bordered>
+              <Descriptions.Item label="Nome">
+                <Text strong>{viewingProvider.user?.name || '-'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {viewingProvider.user?.email || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="CPF">
+                {viewingProvider.person?.cpf || viewingProvider.cpf || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="RG">
+                {viewingProvider.person?.rg || viewingProvider.rg || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Data de Nascimento">
+                {viewingProvider.person?.birth_date || viewingProvider.birth_date
+                  ? dayjs(viewingProvider.person?.birth_date || viewingProvider.birth_date).format('DD/MM/YYYY')
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Telefone">
+                {viewingProvider.person?.phone || viewingProvider.phone || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Endereço">
+                {(() => {
+                  const address = viewingProvider.person?.address || viewingProvider.address;
+                  if (address) {
+                    const parts = [
+                      address.street || viewingProvider.address_street,
+                      address.number || viewingProvider.address_number,
+                      address.neighborhood || viewingProvider.address_neighborhood,
+                      address.city || viewingProvider.address_city,
+                      address.state || viewingProvider.address_state,
+                      address.zip || viewingProvider.address_zip,
+                    ].filter(Boolean);
+                    return parts.length > 0 ? parts.join(', ') : '-';
+                  }
+                  return '-';
+                })()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Serviços">
+                {viewingProvider.services && viewingProvider.services.length > 0 ? (
+                  <Space wrap>
+                    {viewingProvider.services.map((service) => (
+                      <Tag key={service.id} color="blue">{service.name}</Tag>
+                    ))}
+                  </Space>
+                ) : viewingProvider.service_ids && viewingProvider.service_ids.length > 0 ? (
+                  <Space wrap>
+                    {viewingProvider.service_ids.map((id) => (
+                      <Tag key={id} color="blue">{id}</Tag>
+                    ))}
+                  </Space>
+                ) : (
+                  '-'
+                )}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

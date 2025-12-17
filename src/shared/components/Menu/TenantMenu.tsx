@@ -49,6 +49,11 @@ const menuConfig: MenuConfig[] = [
         rota: '/students',
         permission: 'students.view',
       },
+      {
+        label: 'Profissionais',
+        rota: '/profissionais',
+        permission: 'agenda.providers.view',
+      },
     ],
   },
   {

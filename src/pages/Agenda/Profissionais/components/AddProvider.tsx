@@ -83,6 +83,19 @@ export const AddProvider: React.FC<AddProviderProps> = ({ open, onClose, onSucce
           
           const address = person?.address || providerData.address || {};
           
+          // Converter service_ids para números (pode vir como strings da API)
+          let serviceIds: number[] = [];
+          if (providerData.services && providerData.services.length > 0) {
+            // Se tiver o array services com objetos completos, usar os IDs
+            serviceIds = providerData.services.map((s) => s.id);
+          } else if (providerData.service_ids && providerData.service_ids.length > 0) {
+            // Se tiver apenas service_ids, converter para números
+            serviceIds = providerData.service_ids.map((id) => {
+              if (typeof id === 'number') return id;
+              return parseInt(String(id), 10);
+            }).filter((id) => !isNaN(id));
+          }
+          
           form.setFieldsValue({
             name: providerData.user?.name || '',
             email: providerData.user?.email || '',
@@ -96,7 +109,7 @@ export const AddProvider: React.FC<AddProviderProps> = ({ open, onClose, onSucce
             address_city: address.city || providerData.address_city,
             address_state: address.state || providerData.address_state,
             address_zip: address.zip || providerData.address_zip,
-            service_ids: providerData.service_ids || [],
+            service_ids: serviceIds,
           });
 
           if (providerData.photo_url) {
@@ -142,9 +155,21 @@ export const AddProvider: React.FC<AddProviderProps> = ({ open, onClose, onSucce
       
       // Adicionar service_ids como array
       if (values.service_ids && Array.isArray(values.service_ids)) {
-        values.service_ids.forEach((id: number, index: number) => {
+        // Garantir que todos os IDs sejam números
+        const serviceIds: number[] = [];
+        values.service_ids.forEach((id: number | string) => {
+          const numId = typeof id === 'number' ? id : parseInt(String(id), 10);
+          if (!isNaN(numId)) {
+            serviceIds.push(numId);
+          }
+        });
+        
+        // Enviar no formato que o backend espera
+        serviceIds.forEach((id: number, index: number) => {
           formData.append(`service_ids[${index}]`, id.toString());
         });
+        
+        console.log('Enviando service_ids:', serviceIds);
       }
 
       if (fileList.length > 0 && fileList[0].originFileObj) {

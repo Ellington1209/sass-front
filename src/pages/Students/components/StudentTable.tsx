@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Tag, message, Avatar, Input, Select } from 'antd';
-import { EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Space, Tag, message, Input, Select, Modal, Descriptions, Avatar, Typography } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
 import { AppTable, type AppTableColumn } from '../../../shared/components/Table';
 import { studentService, type Student as StudentType, type StudentListParams } from '../../../shared/services/student.service';
 import { statusStudentService, type StatusStudent } from '../../../shared/services/statusStudent.service';
 import { useAuth } from '../../../shared/contexts/AuthContext';
+import dayjs from 'dayjs';
+
+const { Text } = Typography;
 
 interface StudentTableProps {
   onEdit: (student: StudentType) => void;
@@ -27,6 +30,8 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
   });
   const [statusList, setStatusList] = useState<StatusStudent[]>([]);
   const [searchValue, setSearchValue] = useState('');
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewingStudent, setViewingStudent] = useState<StudentType | null>(null);
   
   const canEdit = hasPermission('students.edit');
   const canDelete = hasPermission('students.delete');
@@ -130,42 +135,17 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
     });
   };
 
+  const handleView = (student: StudentType) => {
+    setViewingStudent(student);
+    setViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setViewingStudent(null);
+  };
+
   const columns: AppTableColumn<StudentType>[] = [
-    {
-      title: 'Foto',
-      dataIndex: 'photo_url',
-      key: 'photo',
-      width: 80,
-      render: (photoUrl: string) => {
-        // Se a URL já for completa (começa com http/https), usar diretamente
-        // Caso contrário, construir a URL completa
-        let fullUrl: string | undefined = undefined;
-        
-        if (photoUrl) {
-          if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
-            fullUrl = photoUrl;
-          } else {
-            // Se for caminho relativo, construir URL completa
-            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-            fullUrl = `${apiBaseUrl.replace('/api', '')}${photoUrl}`;
-          }
-        }
-        
-        return (
-          <Avatar
-            src={fullUrl}
-            icon={<UserOutlined />}
-            size="large"
-            style={{ cursor: fullUrl ? 'pointer' : 'default' }}
-            onClick={() => {
-              if (fullUrl) {
-                window.open(fullUrl, '_blank');
-              }
-            }}
-          />
-        );
-      },
-    },
     {
       title: 'Nome',
       key: 'name',
@@ -178,62 +158,37 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
       render: (_: any, record: StudentType) => record.user?.email || '-',
     },
     {
-      title: 'CPF',
-      key: 'cpf',
-      render: (_: any, record: StudentType) => record.person?.cpf || record.cpf || '-',
-      sorter: true,
-    },
-    {
-      title: 'RG',
-      key: 'rg',
-      render: (_: any, record: StudentType) => record.person?.rg || record.rg || '-',
-    },
-    {
-      title: 'Data de Nascimento',
-      key: 'birth_date',
-      render: (_: any, record: StudentType) => {
-        const date = record.person?.birth_date || record.birth_date;
-        return date ? new Date(date).toLocaleDateString('pt-BR') : '-';
-      },
-    },
-    {
       title: 'Telefone',
       key: 'phone',
       render: (_: any, record: StudentType) => record.person?.phone || record.phone || '-',
     },
     {
-      title: 'Categoria',
-      dataIndex: 'category',
-      key: 'category',
-      render: (category: string) => (
-        category ? <Tag color="blue">{category}</Tag> : '-'
-      ),
-    },
-    {
-      title: 'Status',
-      key: 'status',
-      render: (_: any, record: StudentType) => (
-        record.status ? <Tag color="green">{record.status.name}</Tag> : '-'
-      ),
-    },
-    {
       title: 'Ações',
       key: 'actions',
       fixed: 'right',
-      width: canEdit || canDelete ? 150 : 0,
+      width: 120,
       render: (_: any, record: StudentType) => {
         const actions = [];
+        
+        actions.push(
+          <Button
+            key="view"
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+            title="Visualizar"
+          />
+        );
         
         if (canEdit) {
           actions.push(
             <Button
               key="edit"
-              type="link"
+              type="text"
               icon={<EditOutlined />}
               onClick={() => onEdit(record)}
-            >
-              Editar
-            </Button>
+              title="Editar"
+            />
           );
         }
         
@@ -241,7 +196,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
           actions.push(
             <Button
               key="delete"
-              type="link"
+              type="text"
               danger
               icon={<DeleteOutlined />}
               onClick={() => {
@@ -249,13 +204,12 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
                   handleDelete(record.id);
                 }
               }}
-            >
-              Excluir
-            </Button>
+              title="Excluir"
+            />
           );
         }
         
-        return actions.length > 0 ? <Space>{actions}</Space> : '-';
+        return <Space>{actions}</Space>;
       },
     },
   ];
@@ -322,8 +276,87 @@ export const StudentTable: React.FC<StudentTableProps> = ({ onEdit, onRefresh })
           onChange: handleTableChange,
           onShowSizeChange: handleTableChange,
         }}
-        scroll={{ x: 1000 }}
       />
+
+      <Modal
+        title="Detalhes do Aluno"
+        open={viewModalOpen}
+        onCancel={handleCloseViewModal}
+        footer={[
+          <Button key="close" onClick={handleCloseViewModal}>
+            Fechar
+          </Button>,
+        ]}
+        width={700}
+      >
+        {viewingStudent && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              {viewingStudent.photo_url ? (
+                <Avatar
+                  src={viewingStudent.photo_url}
+                  icon={<UserOutlined />}
+                  size={120}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => window.open(viewingStudent.photo_url!, '_blank')}
+                />
+              ) : (
+                <Avatar icon={<UserOutlined />} size={120} />
+              )}
+            </div>
+
+            <Descriptions column={1} bordered>
+              <Descriptions.Item label="Nome">
+                <Text strong>{viewingStudent.user?.name || '-'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {viewingStudent.user?.email || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="CPF">
+                {viewingStudent.person?.cpf || viewingStudent.cpf || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="RG">
+                {viewingStudent.person?.rg || viewingStudent.rg || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Data de Nascimento">
+                {viewingStudent.person?.birth_date || viewingStudent.birth_date
+                  ? dayjs(viewingStudent.person?.birth_date || viewingStudent.birth_date).format('DD/MM/YYYY')
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Telefone">
+                {viewingStudent.person?.phone || viewingStudent.phone || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Endereço">
+                {(() => {
+                  const address = viewingStudent.person?.address || viewingStudent.address;
+                  if (address) {
+                    const parts = [
+                      address.street || viewingStudent.address_street,
+                      address.number || viewingStudent.address_number,
+                      address.neighborhood || viewingStudent.address_neighborhood,
+                      address.city || viewingStudent.address_city,
+                      address.state || viewingStudent.address_state,
+                      address.zip || viewingStudent.address_zip,
+                    ].filter(Boolean);
+                    return parts.length > 0 ? parts.join(', ') : '-';
+                  }
+                  return '-';
+                })()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Categoria">
+                {viewingStudent.category ? (
+                  <Tag color="blue">{viewingStudent.category}</Tag>
+                ) : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Status">
+                {viewingStudent.status ? (
+                  <Tag color="green">{viewingStudent.status.name}</Tag>
+                ) : '-'}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

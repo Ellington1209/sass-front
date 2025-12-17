@@ -26,6 +26,12 @@ export interface ProviderPerson {
   address?: ProviderAddress;
 }
 
+export interface ProviderServiceItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface Provider {
   id?: number;
   tenant_id?: number;
@@ -44,7 +50,8 @@ export interface Provider {
   address_city?: string;
   address_state?: string;
   address_zip?: string;
-  service_ids?: number[];
+  service_ids?: (number | string)[];
+  services?: ProviderServiceItem[];
   photo_url?: string | null;
   created_at?: string;
   updated_at?: string;
