@@ -7,6 +7,7 @@ import {
   DashboardOutlined,
   FileTextOutlined,
   SettingOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,6 +62,13 @@ const menuConfig: MenuConfig[] = [
     icon: <CalendarOutlined />,
     rota: '/agenda',
     module: 'agenda',
+    is_submenu: false,
+  },
+  {
+    label: 'WhatsApp',
+    icon: <MessageOutlined />,
+    rota: '/whatsapp',
+    module: 'whatsapp',
     is_submenu: false,
   },
   {
