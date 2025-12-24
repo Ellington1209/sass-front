@@ -122,15 +122,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isSuperAdmin = (): boolean => {
-    return authState.user?.is_super_admin ?? false;
+    const role = authState.user?.role?.toLowerCase();
+    // Verifica se é super admin pelo role ou pelo campo legado
+    return role === 'super admin' || authState.user?.is_super_admin === true;
   };
 
   const isTenant = (): boolean => {
-    return authState.user?.is_tenant ?? false;
+    const role = authState.user?.role?.toLowerCase();
+    // Verifica se é tenant admin pelo role ou pelo campo legado
+    return role === 'tenant admin' || authState.user?.is_tenant === true;
   };
 
   const isEmployee = (): boolean => {
-    return !isSuperAdmin() && !isTenant();
+    const role = authState.user?.role?.toLowerCase();
+    // É employee se não for super admin nem tenant admin
+    return !isSuperAdmin() && !isTenant() && role !== 'tenant cliente' && role !== 'tenant profissional';
   };
 
   const value: AuthContextType = {

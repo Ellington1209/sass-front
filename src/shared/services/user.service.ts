@@ -6,8 +6,9 @@ export interface User {
   email: string;
   password?: string;
   tenant_id?: number | null;
-  is_super_admin?: boolean;
-  is_tenant?: boolean;
+  role?: string; // "tenant admin" | "tenant cliente" | "tenant profissional" | "super admin"
+  is_super_admin?: boolean; // Mantido para compatibilidade
+  is_tenant?: boolean; // Mantido para compatibilidade
   created_at?: string;
   updated_at?: string;
 }

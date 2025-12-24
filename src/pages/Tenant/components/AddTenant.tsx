@@ -174,7 +174,7 @@ export const AddTenant: React.FC<AddTenantProps> = ({ open, onClose, onSuccess, 
                   <Avatar size="small" icon={<UserOutlined />} />
                   <div>
                     <Text strong>{user.name}</Text>
-                    {user.is_super_admin && (
+                    {(user.role?.toLowerCase() === 'super admin' || user.is_super_admin) && (
                       <Tag color="gold" style={{ marginLeft: 6, fontSize: 11 }}>Super Admin</Tag>
                     )}
                     <div>

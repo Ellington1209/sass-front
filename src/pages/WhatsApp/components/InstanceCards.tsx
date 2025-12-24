@@ -75,21 +75,7 @@ export const InstanceCards: React.FC<InstanceCardsProps> = ({ onRefresh }) => {
     );
   };
 
-  const getCardStyle = (status: string): React.CSSProperties => {
-    const baseStyle: React.CSSProperties = { height: '100%', position: 'relative' };
-    if (status === 'connected') {
-      return {
-        ...baseStyle,
-        backgroundColor: '#f6ffed', // Verde claro
-        borderColor: '#b7eb8f',
-      };
-    }
-    return {
-      ...baseStyle,
-      backgroundColor: '#fff1f0', // Vermelho claro
-      borderColor: '#ffccc7',
-    };
-  };
+
 
   if (instances.length === 0 && !loading) {
     return (
@@ -106,8 +92,7 @@ export const InstanceCards: React.FC<InstanceCardsProps> = ({ onRefresh }) => {
         <Col xs={24} sm={12} lg={8} xl={6} key={instance.id}>
           <Card
             loading={loading}
-            hoverable
-            style={getCardStyle(instance.status)}
+            hoverable         
           >
             {canDelete && (
               <Popconfirm

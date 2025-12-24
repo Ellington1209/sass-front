@@ -3,6 +3,7 @@ import { usePermissions } from '../../shared/contexts/PermissionsContext';
 import { useMemo } from 'react';
 import { Servicos } from './Servicos';
 import { Profissionais } from './Profissionais';
+import { Calendario } from './Calendario';
 
 export const Agenda = () => {
   const { hasPermission } = usePermissions();
@@ -24,7 +25,7 @@ export const Agenda = () => {
       {
         key: '3',
         label: 'Agendamentos',
-        children: <div>Agendamentos</div>,
+        children: <Calendario />,
         permission: null, // Qualquer um pode ver
       },
     ];

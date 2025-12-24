@@ -38,7 +38,7 @@ export const AddUsuario: React.FC<AddUsuarioProps> = ({ open, onClose, onSuccess
         name: values.name,
         email: values.email,
         tenant_id: currentUser?.tenant_id || null,
-        is_super_admin: false,
+        // role será definido pelo backend ou pode ser omitido para usuário padrão
       };
 
       // Só adiciona password se for criação (não edição)

@@ -85,11 +85,20 @@ export const TableUsuario: React.FC<TableUsuarioProps> = ({ onEdit, onRefresh })
       title: 'Tipo',
       key: 'type',
       render: (_: any, record: UserType) => {
-        if (record.is_super_admin) {
+        const role = record.role?.toLowerCase();
+        
+        // Verifica pelo role primeiro, depois pelos campos legados
+        if (role === 'super admin' || record.is_super_admin) {
           return <Tag color="gold">Super Admin</Tag>;
         }
-        if (record.is_tenant) {
-          return <Tag color="blue">Tenant</Tag>;
+        if (role === 'tenant admin' || record.is_tenant) {
+          return <Tag color="blue">Tenant Admin</Tag>;
+        }
+        if (role === 'tenant profissional') {
+          return <Tag color="green">Profissional</Tag>;
+        }
+        if (role === 'tenant cliente') {
+          return <Tag color="cyan">Cliente</Tag>;
         }
         return <Tag color="default">Usuário</Tag>;
       },
