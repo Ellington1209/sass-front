@@ -95,10 +95,8 @@ export const Calendario = () => {
 
   const userType = getUserType();
 
-  // Carregar profissionais (apenas para admin)
+  // Carregar profissionais (para todos os tipos de usuário)
   useEffect(() => {
-    if (userType !== 'admin') return;
-
     const fetchProviders = async () => {
       try {
         const data = await providerService.list();
@@ -108,7 +106,7 @@ export const Calendario = () => {
       }
     };
     fetchProviders();
-  }, [userType]);
+  }, []);
 
   // Carregar agendamentos
   const fetchAppointments = async (startDate?: Date, endDate?: Date) => {
@@ -129,13 +127,11 @@ export const Calendario = () => {
       setLoading(true);
       const params: any = {};
 
-      // Admin: pode filtrar por profissional
-      if (userType === 'admin' && selectedProvider) {
+      // Filtrar por profissional selecionado (para todos os tipos de usuário)
+      if (selectedProvider) {
         params.provider_id = selectedProvider;
-      }
-
-      // Profissional: busca apenas seus agendamentos
-      if (userType === 'provider' && userData) {
+      } else if (userType === 'provider' && userData) {
+        // Profissional sem filtro: busca apenas seus agendamentos
         const providerData = await providerService.list();
         const myProvider = providerData.find((p) => p.user?.id === userData.id);
         if (myProvider) {
@@ -297,6 +293,18 @@ export const Calendario = () => {
     return null;
   };
 
+  // Filtrar availabilities pelo profissional selecionado
+  const filteredAvailabilities = useMemo(() => {
+    if (!selectedProvider) return [];
+    return availabilities.filter((avail) => avail.provider_id === selectedProvider && avail.active);
+  }, [availabilities, selectedProvider]);
+
+  // Filtrar blocks pelo profissional selecionado
+  const filteredBlocks = useMemo(() => {
+    if (!selectedProvider) return blocks;
+    return blocks.filter((block) => block.provider_id === selectedProvider);
+  }, [blocks, selectedProvider]);
+
   // Verificar se um horário está disponível (considerando tenant + profissional)
   const isTimeSlotAvailable = useMemo(() => {
     return (date: dayjs.Dayjs): boolean => {
@@ -313,18 +321,21 @@ export const Calendario = () => {
       const tenantEnd = tenantHour.end_time;
       if (timeStr < tenantStart || timeStr >= tenantEnd) return false; // Fora do horário do tenant
 
-      // Se houver availabilities do profissional, verificar também
-      if (availabilities.length > 0) {
-        const availability = availabilities.find((a) => a.weekday === weekday && a.active);
+      // Se houver availabilities do profissional selecionado, verificar também
+      if (filteredAvailabilities.length > 0) {
+        const availability = filteredAvailabilities.find((a) => a.weekday === weekday);
         if (!availability) return false; // Profissional não disponível neste dia
 
         const availStart = availability.start_time;
         const availEnd = availability.end_time;
         if (timeStr < availStart || timeStr >= availEnd) return false; // Fora do horário do profissional
+      } else if (selectedProvider) {
+        // Se há profissional selecionado mas não há availabilities, considerar indisponível
+        return false;
       }
 
       // Verificar se está em algum block
-      const isBlocked = blocks.some((block) => {
+      const isBlocked = filteredBlocks.some((block) => {
         const blockStart = dayjs(block.start_at);
         const blockEnd = dayjs(block.end_at);
         return date.isSameOrAfter(blockStart) && date.isBefore(blockEnd);
@@ -332,7 +343,7 @@ export const Calendario = () => {
 
       return !isBlocked;
     };
-  }, [businessHours, availabilities, blocks]);
+  }, [businessHours, filteredAvailabilities, filteredBlocks, selectedProvider]);
 
   // Converter horários indisponíveis em eventos de bloqueio
   // COMENTADO: Não estamos mais mostrando horários indisponíveis, apenas bloqueios e agendamentos
@@ -502,9 +513,206 @@ export const Calendario = () => {
     return blockedEvents;
   }, [businessHours, availabilities, currentViewRange]);
 
+  // Converter horários indisponíveis do profissional em eventos (otimizado com useMemo)
+  const unavailableEvents = useMemo(() => {
+    if (!selectedProvider || !currentViewRange) {
+      return [];
+    }
+
+    const unavailableEventsList: EventInput[] = [];
+    const startDate = dayjs(currentViewRange.start);
+    const endDate = dayjs(currentViewRange.end);
+
+    // Para cada dia no período visível
+    let currentDate = startDate.startOf('day');
+    const finalDate = endDate.endOf('day');
+
+    while (currentDate.isBefore(finalDate) || currentDate.isSame(finalDate, 'day')) {
+      const weekday = currentDate.day(); // 0 = domingo, 1 = segunda, etc
+      const dateStr = currentDate.format('YYYY-MM-DD');
+      
+      // Verificar horário do tenant para este dia
+      const tenantHour = businessHours.find((bh) => bh.weekday === weekday && bh.active);
+      
+      if (!tenantHour) {
+        // Dia inteiro fora do funcionamento do tenant
+        unavailableEventsList.push({
+          id: `unavailable-tenant-${dateStr}`,
+          title: 'Fora do horário de funcionamento',
+          start: currentDate.startOf('day').toDate(),
+          end: currentDate.endOf('day').toDate(),
+          backgroundColor: '#c5221f',
+          borderColor: '#b71c1c',
+          textColor: '#ffffff',
+          classNames: ['fc-event-unavailable'],
+          display: 'block',
+          extendedProps: {
+            isUnavailable: true,
+            reason: 'tenant',
+          },
+        });
+        currentDate = currentDate.add(1, 'day');
+        continue;
+      }
+
+      const tenantStart = dayjs(`${dateStr} ${tenantHour.start_time}`);
+      const tenantEnd = dayjs(`${dateStr} ${tenantHour.end_time}`);
+
+      // Encontrar availability para este dia da semana
+      const availability = filteredAvailabilities.find((a) => a.weekday === weekday);
+      
+      if (availability) {
+        // Profissional tem disponibilidade neste dia
+        const availStart = dayjs(`${dateStr} ${availability.start_time}`);
+        const availEnd = dayjs(`${dateStr} ${availability.end_time}`);
+
+        // Ajustar para não ultrapassar o horário do tenant
+        const effectiveAvailStart = availStart.isAfter(tenantStart) ? availStart : tenantStart;
+        const effectiveAvailEnd = availEnd.isBefore(tenantEnd) ? availEnd : tenantEnd;
+
+        // Bloquear antes da disponibilidade do profissional (dentro do horário do tenant)
+        if (effectiveAvailStart.isAfter(tenantStart)) {
+          unavailableEventsList.push({
+            id: `unavailable-before-${selectedProvider}-${weekday}-${dateStr}`,
+            title: 'Profissional indisponível',
+            start: tenantStart.toDate(),
+            end: effectiveAvailStart.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'provider',
+            },
+          });
+        }
+
+        // Bloquear depois da disponibilidade do profissional (dentro do horário do tenant)
+        if (effectiveAvailEnd.isBefore(tenantEnd)) {
+          unavailableEventsList.push({
+            id: `unavailable-after-${selectedProvider}-${weekday}-${dateStr}`,
+            title: 'Profissional indisponível',
+            start: effectiveAvailEnd.toDate(),
+            end: tenantEnd.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'provider',
+            },
+          });
+        }
+
+        // Bloquear antes do horário do tenant (se houver)
+        if (tenantStart.hour() > 0 || tenantStart.minute() > 0) {
+          unavailableEventsList.push({
+            id: `unavailable-tenant-before-${dateStr}`,
+            title: 'Fora do horário de funcionamento',
+            start: currentDate.startOf('day').toDate(),
+            end: tenantStart.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'tenant',
+            },
+          });
+        }
+
+        // Bloquear depois do horário do tenant (se houver)
+        const dayEnd = currentDate.endOf('day');
+        if (tenantEnd.isBefore(dayEnd)) {
+          unavailableEventsList.push({
+            id: `unavailable-tenant-after-${dateStr}`,
+            title: 'Fora do horário de funcionamento',
+            start: tenantEnd.toDate(),
+            end: dayEnd.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'tenant',
+            },
+          });
+        }
+      } else {
+        // Profissional não tem disponibilidade neste dia (mas está dentro do horário do tenant)
+        unavailableEventsList.push({
+          id: `unavailable-provider-${selectedProvider}-${weekday}-${dateStr}`,
+          title: 'Profissional indisponível',
+          start: tenantStart.toDate(),
+          end: tenantEnd.toDate(),
+          backgroundColor: '#c5221f',
+          borderColor: '#b71c1c',
+          textColor: '#ffffff',
+          classNames: ['fc-event-unavailable'],
+          display: 'block',
+          extendedProps: {
+            isUnavailable: true,
+            reason: 'provider',
+          },
+        });
+
+        // Bloquear antes do horário do tenant (se houver)
+        if (tenantStart.hour() > 0 || tenantStart.minute() > 0) {
+          unavailableEventsList.push({
+            id: `unavailable-tenant-before-${dateStr}`,
+            title: 'Fora do horário de funcionamento',
+            start: currentDate.startOf('day').toDate(),
+            end: tenantStart.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'tenant',
+            },
+          });
+        }
+
+        // Bloquear depois do horário do tenant (se houver)
+        const dayEnd = currentDate.endOf('day');
+        if (tenantEnd.isBefore(dayEnd)) {
+          unavailableEventsList.push({
+            id: `unavailable-tenant-after-${dateStr}`,
+            title: 'Fora do horário de funcionamento',
+            start: tenantEnd.toDate(),
+            end: dayEnd.toDate(),
+            backgroundColor: '#c5221f',
+            borderColor: '#b71c1c',
+            textColor: '#ffffff',
+            classNames: ['fc-event-unavailable'],
+            display: 'block',
+            extendedProps: {
+              isUnavailable: true,
+              reason: 'tenant',
+            },
+          });
+        }
+      }
+
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    return unavailableEventsList;
+  }, [filteredAvailabilities, selectedProvider, currentViewRange, businessHours]);
+
   // Converter blocks em eventos de bloqueio (otimizado com useMemo)
   const blockEvents = useMemo(() => {
-    return blocks.map((block) => {
+    return filteredBlocks.map((block) => {
       const start = dayjs(block.start_at).toDate();
       const end = dayjs(block.end_at).toDate();
       
@@ -524,7 +732,7 @@ export const Calendario = () => {
         },
       };
     });
-  }, [blocks]);
+  }, [filteredBlocks]);
 
   // Combinar todos os eventos: agendamentos + bloqueios (otimizado)
   const appointmentEvents: EventInput[] = useMemo(() => 
@@ -534,11 +742,12 @@ export const Calendario = () => {
     [appointments, userData, userType, clientLabel]
   );
 
-  // Não mostrar eventos indisponíveis, apenas bloqueios e agendamentos
+  // Combinar todos os eventos: indisponibilidades + bloqueios + agendamentos
   const events: EventInput[] = useMemo(() => [
+    ...unavailableEvents,
     ...blockEvents,
     ...appointmentEvents,
-  ], [blockEvents, appointmentEvents]);
+  ], [unavailableEvents, blockEvents, appointmentEvents]);
 
   // Calcular dias da semana que devem ser ocultados (dias sem horário de funcionamento)
   const hiddenDays = useMemo(() => {
@@ -613,7 +822,7 @@ export const Calendario = () => {
     }
 
     // Verificar se está em algum block
-    const isBlocked = blocks.some((block) => {
+    const isBlocked = filteredBlocks.some((block) => {
       const blockStart = dayjs(block.start_at);
       const blockEnd = dayjs(block.end_at);
       return (
@@ -803,23 +1012,21 @@ export const Calendario = () => {
         </Space>
       </Space>
 
-      {userType === 'admin' && (
-        <Space style={{ width: '100%', marginBottom: 16 }} wrap>
-          <Select
-            placeholder="Filtrar por profissional"
-            allowClear
-            style={{ width: 250 }}
-            value={selectedProvider}
-            onChange={(value) => setSelectedProvider(value)}
-            showSearch
-            optionFilterProp="label"
-            options={providers.map((provider) => ({
-              value: provider.id,
-              label: provider.user?.name || `Profissional ${provider.id}`,
-            }))}
-          />
-        </Space>
-      )}
+      <Space style={{ width: '100%', marginBottom: 16 }} wrap>
+        <Select
+          placeholder="Filtrar por profissional"
+          allowClear
+          style={{ width: 250 }}
+          value={selectedProvider}
+          onChange={(value) => setSelectedProvider(value)}
+          showSearch
+          optionFilterProp="label"
+          options={providers.map((provider) => ({
+            value: provider.id,
+            label: provider.user?.name || `Profissional ${provider.id}`,
+          }))}
+        />
+      </Space>
 
       <Spin spinning={loading}>
         <div className="calendar-wrapper">

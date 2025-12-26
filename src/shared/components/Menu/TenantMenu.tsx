@@ -23,6 +23,7 @@ interface MenuConfig {
   icon: ReactNode;
   rota?: string; // Rota do menu principal (se não for submenu)
   module?: string; // Módulo necessário para aparecer (se não tiver, sempre aparece)
+  permission?: string; // Permissão necessária para aparecer (para itens principais)
   is_submenu: boolean;
   submenu?: Array<{
     label: string;
@@ -70,6 +71,7 @@ const menuConfig: MenuConfig[] = [
     rota: '/whatsapp',
     module: 'whatsapp',
     is_submenu: false,
+    permission: 'whatsapp.view',
   },
   {
     label: 'Configurações',
@@ -106,6 +108,11 @@ export const TenantMenu: React.FC<TenantMenuProps> = ({ onMenuClick }) => {
       // Verifica se tem o módulo necessário
       if (config.module && !hasModule(config.module)) {
         return; // Pula este menu se não tiver o módulo
+      }
+
+        // Verifica permissão se necessário (para itens principais)
+      if (config.permission && !hasPermission(config.permission)) {
+        return; // Pula este menu se não tiver a permissão
       }
 
       // Se não for submenu, adiciona diretamente

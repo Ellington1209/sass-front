@@ -1,5 +1,6 @@
 import { Tabs } from 'antd';
 import { usePermissions } from '../../shared/contexts/PermissionsContext';
+import { useAuth } from '../../shared/contexts/AuthContext';
 import { useMemo } from 'react';
 import { Servicos } from './Servicos';
 import { Profissionais } from './Profissionais';
@@ -7,6 +8,7 @@ import { Calendario } from './Calendario';
 
 export const Agenda = () => {
   const { hasPermission } = usePermissions();
+  const { user } = useAuth();
 
   const items = useMemo(() => {
     const allItems = [
@@ -20,7 +22,7 @@ export const Agenda = () => {
         key: '2',
         label: 'Profissionais',
         children: <Profissionais />,
-        permission: 'provider.view',
+        permission: 'agenda.providers.view',
       },
       {
         key: '3',
@@ -30,11 +32,21 @@ export const Agenda = () => {
       },
     ];
 
-    // Filtra os items baseado nas permissões
+    // Verifica se o role é "tenant cliente"
+    const isTenantCliente = user?.role?.toLowerCase() === 'tenant cliente';
+
+    // Filtra os items baseado nas permissões e role
     return allItems
-      .filter((item) => !item.permission || hasPermission(item.permission))
+      .filter((item) => {
+        // Se for "tenant cliente", não mostra itens com permissão específica
+        if (isTenantCliente && item.permission) {
+          return false;
+        }
+        // Verifica permissão se necessário
+        return !item.permission || hasPermission(item.permission);
+      })
       .map(({ permission, ...item }) => item);
-  }, [hasPermission]);
+  }, [hasPermission, user]);
 
   // Define a primeira tab disponível como padrão
   const defaultActiveKey = items.length > 0 ? items[0].key : '1';

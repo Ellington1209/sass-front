@@ -118,21 +118,24 @@ export const AddAppointment: React.FC<AddAppointmentProps> = ({
         }
       }
 
-      try {
-        setLoadingStatus(true);
-        const statusData = await statusAgendaService.list();
-        setStatusList(statusData.filter((s) => s.active !== false));
-      } catch (err: any) {
-        console.error('Erro ao carregar status de agenda:', err);
-        message.error('Erro ao carregar status de agenda');
-        setStatusList([]);
-      } finally {
-        setLoadingStatus(false);
+      // Carregar status apenas na edição
+      if (isEdit) {
+        try {
+          setLoadingStatus(true);
+          const statusData = await statusAgendaService.list();
+          setStatusList(statusData.filter((s) => s.active !== false));
+        } catch (err: any) {
+          console.error('Erro ao carregar status de agenda:', err);
+          message.error('Erro ao carregar status de agenda');
+          setStatusList([]);
+        } finally {
+          setLoadingStatus(false);
+        }
       }
     };
 
     fetchData();
-  }, [open, userType, userData]);
+  }, [open, userType, userData, isEdit]);
 
   // Carregar dados do agendamento para edição
   useEffect(() => {
@@ -198,7 +201,7 @@ export const AddAppointment: React.FC<AddAppointmentProps> = ({
         provider_id: providerId,
         client_id: clientId,
         date_start: dateStart,
-        status_agenda_id: values.status_agenda_id || null,
+        status_agenda_id: isEdit ? (values.status_agenda_id || null) : null,
         notes: values.notes || null,
       };
 
@@ -284,7 +287,6 @@ export const AddAppointment: React.FC<AddAppointmentProps> = ({
                 showSearch
                 optionFilterProp="label"
                 onChange={handleServiceChange}
-                disabled={!selectedProviderId && userType !== 'admin'}
                 options={availableServices.map((service) => ({
                   value: service.id,
                   label: service.name,
@@ -332,21 +334,23 @@ export const AddAppointment: React.FC<AddAppointmentProps> = ({
           </Col>
         </Row>
 
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item name="status_agenda_id" label="Status">
-              <Select
-                placeholder="Selecione o status"
-                loading={loadingStatus}
-                allowClear
-                options={statusList.map((status) => ({
-                  value: status.id,
-                  label: status.name,
-                }))}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+        {isEdit && (
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="status_agenda_id" label="Status">
+                <Select
+                  placeholder="Selecione o status"
+                  loading={loadingStatus}
+                  allowClear
+                  options={statusList.map((status) => ({
+                    value: status.id,
+                    label: status.name,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
 
         <Row gutter={16}>
           <Col xs={24}>
