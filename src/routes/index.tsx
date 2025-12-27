@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
-import { Agenda, Comissoes, DashboardPage, LoginPage, PermissoesUsuarios, Profissionais, SettingsConfig, Students, Tenant, UnauthorizedPage, WhatsApp } from '../pages';
+import { Agenda, Comissoes, DashboardPage, Financeiro, LoginPage, PermissoesUsuarios, Profissionais, SettingsConfig, Students, Tenant, UnauthorizedPage, WhatsApp } from '../pages';
 import { ProtectedLayout } from './ProtectedLayout';
 import { PublicRoute } from './PublicRoute';
 
@@ -30,6 +30,11 @@ export const AppRoutes = () => {
         <Route index element={<SettingsConfig />} />
         <Route path="permissions-and-users" element={<PermissoesUsuarios />} />
         <Route path="commissions" element={<Comissoes />} />
+      </Route>
+
+      {/* Financeiro Routes */}
+      <Route path="/financeiro" element={<ProtectedLayout><Outlet /></ProtectedLayout>}>
+        <Route index element={<Financeiro />} />
       </Route>
 
     </Routes>

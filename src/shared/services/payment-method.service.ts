@@ -1,27 +1,25 @@
 import { api } from './api.service';
 
-export interface FinancialOrigin {
+export interface PaymentMethod {
   id: number;
   tenant_id?: number;
   name: string;
-  origin_type?: 'OPERATIONAL' | 'MANUAL';
   active?: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
 /**
- * Service para gerenciar origens financeiras
+ * Service para gerenciar métodos de pagamento
  */
-class FinancialOriginService {
+class PaymentMethodService {
   /**
-   * Listar todas as origens financeiras
+   * Listar todos os métodos de pagamento
    */
   async list(params?: {
     active?: boolean;
-    origin_type?: 'OPERATIONAL' | 'MANUAL';
-  }): Promise<FinancialOrigin[]> {
-    const response = await api.get<any>('/financial/origins', { params });
+  }): Promise<PaymentMethod[]> {
+    const response = await api.get<any>('/financial/payment-methods', { params });
     if (response.data && Array.isArray(response.data)) {
       return response.data;
     }
@@ -32,10 +30,10 @@ class FinancialOriginService {
   }
 
   /**
-   * Buscar uma origem específica por ID
+   * Buscar um método de pagamento específico por ID
    */
-  async getById(id: number | string): Promise<FinancialOrigin> {
-    const response = await api.get<any>(`/financial/origins/${id}`);
+  async getById(id: number | string): Promise<PaymentMethod> {
+    const response = await api.get<any>(`/financial/payment-methods/${id}`);
     if (response.data?.data && !Array.isArray(response.data.data)) {
       return response.data.data;
     }
@@ -43,14 +41,13 @@ class FinancialOriginService {
   }
 
   /**
-   * Criar nova origem financeira
+   * Criar novo método de pagamento
    */
   async create(data: {
     name: string;
-    origin_type: 'OPERATIONAL' | 'MANUAL';
     active?: boolean;
-  }): Promise<FinancialOrigin> {
-    const response = await api.post<any>('/financial/origins', data);
+  }): Promise<PaymentMethod> {
+    const response = await api.post<any>('/financial/payment-methods', data);
     if (response.data?.data && !Array.isArray(response.data.data)) {
       return response.data.data;
     }
@@ -58,5 +55,5 @@ class FinancialOriginService {
   }
 }
 
-export const financialOriginService = new FinancialOriginService();
+export const paymentMethodService = new PaymentMethodService();
 

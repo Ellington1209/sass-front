@@ -8,6 +8,7 @@ import {
   FileTextOutlined,
   SettingOutlined,
   MessageOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -63,6 +64,13 @@ const menuConfig: MenuConfig[] = [
     icon: <CalendarOutlined />,
     rota: '/agenda',
     module: 'agenda',
+    is_submenu: false,
+  },
+  {
+    label: 'Financeiro',
+    icon: <DollarOutlined />,
+    rota: '/financeiro',
+    module: 'financeiro',
     is_submenu: false,
   },
   {
