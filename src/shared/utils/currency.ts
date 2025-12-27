@@ -10,3 +10,7 @@ export const fromBRL = (value: string): number => {
   return Number(onlyNumbers) / 100;
 };
 
+export const formatCurrency = (value: number | string): string => {
+  return toBRL(value);
+};
+

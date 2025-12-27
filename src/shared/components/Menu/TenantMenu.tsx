@@ -84,6 +84,11 @@ const menuConfig: MenuConfig[] = [
         rota: '/settings/permissions-and-users',
         permission: 'settings.view',
       },
+      {
+        label: 'Comissões',
+        rota: '/settings/commissions',
+        permission: 'financeiro.commissions.view',
+      },
     ],
   },
 ];

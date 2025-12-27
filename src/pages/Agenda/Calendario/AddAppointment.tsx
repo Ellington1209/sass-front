@@ -5,10 +5,11 @@ import { providerService, type Provider } from '../../../shared/services/provide
 import { serviceService, type Service } from '../../../shared/services/service.service';
 import { clientService, type Client } from '../../../shared/services/client.service';
 import { statusAgendaService, type StatusAgenda } from '../../../shared/services/statusAgenda.service';
-import { apiService } from '../../../shared/services/api.service';
+
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import 'dayjs/locale/pt-br';
+import { apiService } from '../../../shared/services/api.service';
 
 dayjs.extend(utc);
 dayjs.locale('pt-br');
